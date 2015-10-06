@@ -1,0 +1,286 @@
+# Brouter Profile for velomobiles
+# Modification of vm-forum-velomobil-schnell.brf
+
+---context:global
+
+assign downhillcost 80
+assign downhillcutoff 5     # ich will keine steilen Abfahrten, d.h. ich bestrafe nur steile Abfahrten. 
+# Teststrecke http://achter:17777/brouter?lonlats=11.748462,47.426694|11.778374,47.392365&nogos=&profile=custom_1443878593699&alternativeidx=0&format=gpx
+
+assign uphillcost 180
+# Teststrecke: http://achter:17777/brouter?lonlats=10.549622,48.109724|10.485592,48.076817&nogos=&profile=custom_1443878593699&alternativeidx=0&format=gpx
+assign uphillcutoff 0.0     # ich fahre lieber steil hoch statt flach. Brouter hat aber keine Möglichkeit,
+                            #  um flache Anstiege zu bestrafen,also bestrafe ich alle Anstiege als Mittel, um flache Routen zu bevorzugen
+
+assign validForBikes 1
+assign validForCars 0
+
+assign pass1coefficient 2.5
+assign pass2coefficient 0
+
+
+assign elevationpenaltybuffer 7    # alle Höhenunterschiede unter 10 Meter nimmt man im VM mit der kinetischen Energie 
+assign elevationmaxbuffer 20
+assign elevationbufferreduce 0.3
+
+
+---context:way
+
+assign any_cycleroute or route_bicycle_icn=yes or route_bicycle_ncn=yes or route_bicycle_rcn=yes route_bicycle_lcn=yes
+assign nodeaccessgranted or any_cycleroute lcn=yes
+
+
+assign turncost 250
+
+assign initialcost
+ switch route=ferry 15000
+ switch highway=steps 1000
+ switch highway=footway 1000
+ switch or highway=cycleway and highway=path bicycle=designated 800
+ 0
+
+assign oneway
+ switch oneway=
+  junction=roundabout
+  or oneway=yes or oneway=true oneway=1
+
+assign onewaypenalty
+ switch switch reversedirection=yes oneway oneway=-1
+  switch or cycleway=opposite or cycleway=opposite_lane or cycleway=opposite_track oneway:bicycle=no 0
+  switch or highway=primary highway=primary_link 50
+  switch or highway=secondary highway=secondary_link 30
+  switch or highway=tertiary highway=tertiary_link 25
+  20.0
+ 0.0
+
+assign defaultaccess
+ switch access=
+  not motorroad=yes
+  switch or access=private access=no
+   0
+   1
+
+assign bikeaccess
+ or any_cycleroute
+  switch bicycle=
+   switch vehicle=
+    defaultaccess
+    switch or vehicle=private vehicle=no
+     0
+     1
+   not or bicycle=private or bicycle=no bicycle=dismount
+
+
+assign footaccess
+ or bikeaccess
+  or bicycle=dismount
+   switch foot=
+    defaultaccess
+    not or foot=private foot=no
+
+assign accesspenalty
+ switch bikeaccess
+  0
+  switch footaccess
+   15
+   100000
+
+
+assign downspeedpenalty
+ switch maxspeed=10 8
+ switch maxspeed=20 4
+ switch maxspeed=30 2.5
+ #switch maxspeed=50 1.5
+ 0
+
+assign flatspeedpenalty
+ switch maxspeed=10 6
+ switch maxspeed=20 3
+ switch maxspeed=30 2
+ #switch maxspeed=50 1.2
+ 0
+# http://localhost:8090/brouter-web/#zoom=14&lat=48.04707&lon=9.32747&layer=OpenStreetMap&lonlats=9.313316,48.057431|9.352112,48.049226&nogos=&profile=velomobil-tt&alternativeidx=0&format=geojson 
+# http://localhost:8090/brouter-web/#zoom=14&lat=48.02073&lon=9.24645&layer=OpenStreetMap&lonlats=9.234524,48.01519|9.266195,48.013066&nogos=&profile=velomobil-tt&alternativeidx=0&format=geojson 
+# http://localhost:8090/brouter-web/#zoom=14&lat=47.99448&lon=10.00528&layer=OpenStreetMap&lonlats=9.993954,47.995838|10.037813,48.022022&nogos=&alternativeidx=0&format=geojson
+# http://localhost:8090/brouter-web/#zoom=13&lat=48.0091&lon=9.969&layer=OpenStreetMap&lonlats=10.037556,48.021908|9.993181,47.995666&nogos=&alternativeidx=0&format=geojson&profile=velomobil-tt
+
+assign upspeedpenalty
+ switch maxspeed=10 3
+ switch maxspeed=20 1.5
+ switch maxspeed=30 1
+ 0
+
+
+
+
+assign surfacepenalty
+ switch or surface=asphalt surface=paved 0
+ switch or surface=concrete surface=paving_stones 0.5
+ switch or surface=cobblestone or surface=fine_gravel surface=compacted 5
+ switch or surface=gravel or surface=sand surface=pebblestone 10
+ switch or surface=ground or surface=grass or surface=unpaved surface=dirt 50 0
+
+
+assign costfactor
+
+ add onewaypenalty
+ add accesspenalty
+ add surfacepenalty
+ add flatspeedpenalty
+ add switch junction=roundabout 1
+    0
+ switch and highway= not route=ferry 100000
+
+ switch or highway=proposed or highway=construction highway=abandoned 100000
+ switch or highway=motorway highway=motorway_link 100000
+ switch route=ferry 10.67
+ switch or highway=trunk highway=trunk_link 2.5
+ switch or highway=primary highway=primary_link 1.2
+ switch or highway=secondary highway=secondary_link 1
+ switch or highway=tertiary highway=tertiary_link 1.1
+ switch highway=unclassified 1.2
+ switch or highway=residential highway=service 2.7
+ switch highway=track
+  switch tracktype=grade1 1.8
+    # Tested: http://achter:17777/brouter?lonlats=9.348764,47.9886|9.348979,47.977656&nogos=&profile=custom_1443878593699&alternativeidx=0&format=gpx
+  switch tracktype=grade2 10
+  switch tracktype=grade3 40
+  switch tracktype=grade4 50
+  switch tracktype=grade5 50 
+  20
+ switch highway=cycleway 2.5
+ switch highway=living_street 5
+ switch highway=road 10
+ switch highway=footway 30
+ switch highway=pedestrian 30
+ switch highway=steps 40
+ switch highway=path
+  switch bicycle=designated 
+   switch surface= 20 
+   2.5
+  40 
+ switch highway=bridleway 80
+ 20
+
+assign uphillcostfactor
+
+ add upspeedpenalty
+ add onewaypenalty
+ add accesspenalty
+ add surfacepenalty
+ add switch junction=roundabout 0.1
+            0
+ switch and highway= not route=ferry 100000
+
+ switch or highway=proposed or highway=construction highway=abandoned 100000
+ switch or highway=motorway highway=motorway_link 100000
+ switch route=ferry 10.67
+ switch or highway=trunk highway=trunk_link 6.5
+ switch or highway=primary highway=primary_link 3
+ switch or highway=secondary highway=secondary_link 1.5
+ switch or highway=tertiary highway=tertiary_link 1
+ switch highway=unclassified 1
+ switch or highway=residential highway=service 1.5
+ switch highway=track
+  switch tracktype=grade1 1.5
+  switch tracktype=grade2 10
+  switch tracktype=grade3 40
+  switch tracktype=grade4 50
+  switch tracktype=grade5 50 20
+ switch highway=cycleway 2
+ switch highway=living_street 5
+ switch highway=road 10
+ switch highway=footway 30
+ switch highway=pedestrian 30
+ switch highway=steps 40
+ switch highway=path
+  switch bicycle=designated 
+   switch surface= 20 
+   2
+  40 
+ switch highway=bridleway 80
+ 20
+
+assign downhillcostfactor
+
+ add downspeedpenalty
+ add onewaypenalty
+ add accesspenalty
+ add surfacepenalty
+ add switch junction=roundabout 2                            # Kreisverkehr
+            0
+ switch and highway= not route=ferry 100000
+
+ switch or highway=proposed or highway=construction highway=abandoned 100000
+ switch or highway=motorway highway=motorway_link 100000
+ switch route=ferry 10.67
+ switch or highway=trunk highway=trunk_link 1.1
+ switch or highway=primary highway=primary_link 1.1
+ switch or highway=secondary highway=secondary_link 1
+ switch or highway=tertiary highway=tertiary_link 1.1
+ switch highway=unclassified 1.7
+ switch or highway=residential highway=service 3.5
+ switch highway=track
+  switch tracktype=grade1 4
+  switch tracktype=grade2 20
+  switch tracktype=grade3 40
+  switch tracktype=grade4 60
+  switch tracktype=grade5 50 20
+ switch highway=cycleway 5
+ switch highway=living_street 8
+ switch highway=road 10
+ switch highway=footway 30
+ switch highway=pedestrian 30
+ switch highway=steps 40
+ switch highway=path
+  switch bicycle=designated 
+   switch surface= 20 
+   5
+  40 
+ switch highway=bridleway 80
+ 20
+
+
+---context:node # following code refers to node tags
+
+assign defaultaccess
+ switch access=
+  1 # add default barrier restrictions here!
+  switch or access=private access=no
+   0
+   1
+
+assign bikeaccess
+ or nodeaccessgranted=yes
+  switch bicycle=
+   switch vehicle=
+    defaultaccess
+    switch or vehicle=private vehicle=no
+     0
+     1
+   switch or bicycle=private or bicycle=no bicycle=dismount
+    0
+    1
+
+assign footaccess
+ or bicycle=dismount
+  switch foot=
+   defaultaccess
+   switch or foot=private foot=no
+    0
+    1
+
+assign initialcost
+ add switch highway=traffic_signals 350 
+  switch highway=stop 250
+  switch highway=give_way 150                               # Vorfahrt achten
+  switch or railway=crossing railway=level_crossing 300     # Bahnübergang
+  switch highway=crossing 10                                # Zebrastreifen
+  switch highway=mini_roundabout 10                         # Kreisverkehr mit überfahrbarer Mittelinsel
+  switch highway=city_entry 100                             # Ortseingang (auch -ausgang?), nicht im OSM-Wiki beschrieben
+    0
+ switch bikeaccess
+  0 
+  switch footaccess
+   10000
+   1000000
